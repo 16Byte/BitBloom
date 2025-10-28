@@ -1,33 +1,50 @@
-# Compiled binaries
-snake
-snake.exe
-snake.out
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
 *.o
 *.obj
 
-# VS Code
-.vscode/
-*.code-workspace
+# Precompiled Headers
+*.gch
+*.pch
 
-# macOS
-.DS_Store
+# Linker files
+*.ilk
 
-# Linux
-*~
+# Debugger Files
+*.pdb
 
-# Build artifacts
-*.a
+# Compiled Dynamic libraries
 *.so
 *.dylib
 *.dll
 
-# Debugging
-*.dSYM/
-core
-vgcore.*
+# Fortran module files
+*.mod
+*.smod
 
-# IDE files
-.idea/
-*.swp
-*.swo
-*~
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# debug information files
+*.dwo
+
+# OS Specific
+*.DS_Store
+
+# compiled files
+[Bb]in/
+
+# vs code
+*.vscode
