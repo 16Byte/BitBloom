@@ -8,8 +8,11 @@
 const int GRID_WIDTH = 80;
 const int GRID_HEIGHT = 60;
 const int CELL_SIZE = 10;
+const int UI_TOP_HEIGHT = 50;
+const int UI_BOTTOM_HEIGHT = 40;
+const int GRID_OFFSET_Y = UI_TOP_HEIGHT;
 const int SCREEN_WIDTH = GRID_WIDTH * CELL_SIZE;
-const int SCREEN_HEIGHT = GRID_HEIGHT * CELL_SIZE;
+const int SCREEN_HEIGHT = GRID_HEIGHT * CELL_SIZE + UI_TOP_HEIGHT + UI_BOTTOM_HEIGHT;
 
 enum GameState {
     MAIN_MENU,
@@ -107,6 +110,8 @@ int main() {
     GameState currentState = MAIN_MENU;
     int frameCounter = 0;
     int aliveCells = 0;
+    float gameTimer = 0.0f;
+    float finalTime = 0.0f;
     
     while (!WindowShouldClose()) {
         // Update logic
@@ -115,7 +120,7 @@ int main() {
             if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
                 Vector2 mousePos = GetMousePosition();
                 int x = mousePos.x / CELL_SIZE;
-                int y = mousePos.y / CELL_SIZE;
+                int y = (mousePos.y - GRID_OFFSET_Y) / CELL_SIZE;
                 if (x >= 0 && x < GRID_WIDTH && y >= 0 && y < GRID_HEIGHT) {
                     grid[y][x] = true;
                 }
@@ -124,7 +129,11 @@ int main() {
             if (IsKeyPressed(KEY_ESCAPE)) {
                 currentState = MAIN_MENU;
                 clearGrid(grid);
+                gameTimer = 0.0f;
             }
+            
+            // Update timer
+            gameTimer += GetFrameTime();
             
             // Update simulation
             frameCounter++;
@@ -138,6 +147,7 @@ int main() {
             
             // Check win condition
             if (aliveCells == 0) {
+                finalTime = gameTimer;
                 currentState = WIN_SCREEN;
             }
         }
@@ -167,6 +177,7 @@ int main() {
                 randomSeed(grid, 0.3f);
                 currentState = GAME;
                 frameCounter = 0;
+                gameTimer = 0.0f;
             }
             
             if (drawButton("Exit", buttonX, 330, buttonWidth, buttonHeight, quitHovered)) {
@@ -175,50 +186,72 @@ int main() {
             }
         }
         else if (currentState == GAME) {
-            // Draw grid
+            // Draw top UI bar
+            DrawRectangle(0, 0, SCREEN_WIDTH, UI_TOP_HEIGHT, BLACK);
+            
+            char cellCountText[64];
+            snprintf(cellCountText, sizeof(cellCountText), "Alive Cells: %d", aliveCells);
+            DrawText(cellCountText, 10, 15, 24, WHITE);
+            
+            // Draw timer
+            int minutes = (int)gameTimer / 60;
+            int seconds = (int)gameTimer % 60;
+            int milliseconds = (int)((gameTimer - (int)gameTimer) * 100);
+            char timerText[32];
+            snprintf(timerText, sizeof(timerText), "Time: %02d:%02d.%02d", minutes, seconds, milliseconds);
+            int timerWidth = MeasureText(timerText, 24);
+            DrawText(timerText, SCREEN_WIDTH / 2 - timerWidth / 2, 15, 24, YELLOW);
+            
+            // Draw grid with offset
             for (int y = 0; y < GRID_HEIGHT; y++) {
                 for (int x = 0; x < GRID_WIDTH; x++) {
                     if (grid[y][x]) {
-                        DrawRectangle(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE - 1, CELL_SIZE - 1, GREEN);
+                        DrawRectangle(x * CELL_SIZE, y * CELL_SIZE + GRID_OFFSET_Y, CELL_SIZE - 1, CELL_SIZE - 1, GREEN);
                     }
                 }
             }
             
-            // Draw UI
-            DrawRectangle(0, 0, SCREEN_WIDTH, 40, Fade(BLACK, 0.7f));
+            // Draw border around game grid
+            DrawRectangleLines(0, GRID_OFFSET_Y, SCREEN_WIDTH, GRID_HEIGHT * CELL_SIZE, WHITE);
             
-            char cellCountText[64];
-            snprintf(cellCountText, sizeof(cellCountText), "Alive Cells: %d", aliveCells);
-            DrawText(cellCountText, 10, 10, 24, WHITE);
-            
-            DrawText("Goal: Eliminate all cells!", SCREEN_WIDTH - 250, 10, 20, YELLOW);
-            
+            // Draw bottom UI bar
+            DrawRectangle(0, SCREEN_HEIGHT - UI_BOTTOM_HEIGHT, SCREEN_WIDTH, UI_BOTTOM_HEIGHT, BLACK);
             DrawText("Left Click: Place Cell | ESC: Menu", 10, SCREEN_HEIGHT - 30, 18, GRAY);
         }
         else if (currentState == WIN_SCREEN) {
             const char* winTitle = "YOU WIN!";
             int winTitleWidth = MeasureText(winTitle, 60);
-            DrawText(winTitle, (SCREEN_WIDTH - winTitleWidth) / 2, 150, 60, GREEN);
+            DrawText(winTitle, (SCREEN_WIDTH - winTitleWidth) / 2, 120, 60, GREEN);
             
             const char* winSubtitle = "All cells eliminated!";
             int winSubtitleWidth = MeasureText(winSubtitle, 30);
-            DrawText(winSubtitle, (SCREEN_WIDTH - winSubtitleWidth) / 2, 230, 30, LIGHTGRAY);
+            DrawText(winSubtitle, (SCREEN_WIDTH - winSubtitleWidth) / 2, 200, 30, LIGHTGRAY);
+            
+            // Display final time
+            int minutes = (int)finalTime / 60;
+            int seconds = (int)finalTime % 60;
+            int milliseconds = (int)((finalTime - (int)finalTime) * 100);
+            char finalTimeText[64];
+            snprintf(finalTimeText, sizeof(finalTimeText), "Your Time: %02d:%02d.%02d", minutes, seconds, milliseconds);
+            int finalTimeWidth = MeasureText(finalTimeText, 36);
+            DrawText(finalTimeText, (SCREEN_WIDTH - finalTimeWidth) / 2, 250, 36, YELLOW);
             
             int buttonWidth = 300;
             int buttonHeight = 60;
             int buttonX = (SCREEN_WIDTH - buttonWidth) / 2;
             
-            bool playAgainHovered = isMouseOver(buttonX, 300, buttonWidth, buttonHeight);
-            bool menuHovered = isMouseOver(buttonX, 380, buttonWidth, buttonHeight);
+            bool playAgainHovered = isMouseOver(buttonX, 320, buttonWidth, buttonHeight);
+            bool menuHovered = isMouseOver(buttonX, 400, buttonWidth, buttonHeight);
             
-            if (drawButton("Play Again", buttonX, 300, buttonWidth, buttonHeight, playAgainHovered)) {
+            if (drawButton("Play Again", buttonX, 320, buttonWidth, buttonHeight, playAgainHovered)) {
                 clearGrid(grid);
                 randomSeed(grid, 0.3f);
                 currentState = GAME;
                 frameCounter = 0;
+                gameTimer = 0.0f;
             }
             
-            if (drawButton("Main Menu", buttonX, 380, buttonWidth, buttonHeight, menuHovered)) {
+            if (drawButton("Main Menu", buttonX, 400, buttonWidth, buttonHeight, menuHovered)) {
                 currentState = MAIN_MENU;
                 clearGrid(grid);
             }
