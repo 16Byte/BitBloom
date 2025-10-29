@@ -10,12 +10,11 @@ const int GRID_HEIGHT = 60;
 const int CELL_SIZE = 10;
 const int SCREEN_WIDTH = GRID_WIDTH * CELL_SIZE;
 const int SCREEN_HEIGHT = GRID_HEIGHT * CELL_SIZE;
-const int MAX_HISTORY = 100; // Maximum number of states to keep in history
 
 enum GameState {
     MAIN_MENU,
-    SEED_MENU,
-    SIMULATION
+    GAME,
+    WIN_SCREEN
 };
 
 int countNeighbors(const std::vector<std::vector<bool>>& grid, int x, int y) {
@@ -67,6 +66,16 @@ void clearGrid(std::vector<std::vector<bool>>& grid) {
     }
 }
 
+int countAliveCells(const std::vector<std::vector<bool>>& grid) {
+    int count = 0;
+    for (int y = 0; y < GRID_HEIGHT; y++) {
+        for (int x = 0; x < GRID_WIDTH; x++) {
+            if (grid[y][x]) count++;
+        }
+    }
+    return count;
+}
+
 bool drawButton(const char* text, int x, int y, int width, int height, bool isHovered) {
     Color buttonColor = isHovered ? DARKGRAY : GRAY;
     DrawRectangle(x, y, width, height, buttonColor);
@@ -86,7 +95,7 @@ bool isMouseOver(int x, int y, int width, int height) {
 
 int main() {
     SetExitKey(0);
-    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Conway's Game of Life");
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "BitBloom");
     SetTargetFPS(60);
     
     srand(time(NULL));
@@ -95,21 +104,14 @@ int main() {
     std::vector<std::vector<bool>> grid(GRID_HEIGHT, std::vector<bool>(GRID_WIDTH, false));
     std::vector<std::vector<bool>> nextGrid(GRID_HEIGHT, std::vector<bool>(GRID_WIDTH, false));
     
-    // History for back stepping
-    std::deque<std::vector<std::vector<bool>>> history;
-    
     GameState currentState = MAIN_MENU;
-    bool paused = true;
     int frameCounter = 0;
+    int aliveCells = 0;
     
     while (!WindowShouldClose()) {
-        if (currentState == MAIN_MENU) {
-            // Main menu
-        }
-        else if (currentState == SEED_MENU) {
-            // Seed menu
-        }
-        else if (currentState == SIMULATION) {
+        // Update logic
+        if (currentState == GAME) {
+            // Allow player to add cells by clicking
             if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
                 Vector2 mousePos = GetMousePosition();
                 int x = mousePos.x / CELL_SIZE;
@@ -119,139 +121,107 @@ int main() {
                 }
             }
             
-            if (IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) {
-                Vector2 mousePos = GetMousePosition();
-                int x = mousePos.x / CELL_SIZE;
-                int y = mousePos.y / CELL_SIZE;
-                if (x >= 0 && x < GRID_WIDTH && y >= 0 && y < GRID_HEIGHT) {
-                    grid[y][x] = false;
-                }
-            }
-            
-            if (IsKeyPressed(KEY_SPACE)) {
-                paused = !paused;
-            }
-            
-            // Step forward one frame when paused
-            if (paused && IsKeyPressed(KEY_RIGHT)) {
-                // Save current state to history before stepping forward
-                history.push_back(grid);
-                if (history.size() > MAX_HISTORY) {
-                    history.pop_front();
-                }
-                updateGrid(grid, nextGrid);
-            }
-            
-            // Step backward one frame when paused
-            if (paused && IsKeyPressed(KEY_LEFT)) {
-                if (!history.empty()) {
-                    grid = history.back();
-                    history.pop_back();
-                }
-            }
-            
-            if (IsKeyPressed(KEY_C)) {
-                clearGrid(grid);
-                history.clear(); // Clear history when grid is cleared
-            }
-            
             if (IsKeyPressed(KEY_ESCAPE)) {
                 currentState = MAIN_MENU;
-                paused = true;
                 clearGrid(grid);
-                history.clear(); // Clear history when returning to menu
             }
             
-            if (!paused) {
-                frameCounter++;
-                if (frameCounter >= 6) {
-                    // Save current state to history before updating
-                    history.push_back(grid);
-                    if (history.size() > MAX_HISTORY) {
-                        history.pop_front();
-                    }
-                    updateGrid(grid, nextGrid);
-                    frameCounter = 0;
-                }
+            // Update simulation
+            frameCounter++;
+            if (frameCounter >= 6) {
+                updateGrid(grid, nextGrid);
+                frameCounter = 0;
+            }
+            
+            // Count alive cells
+            aliveCells = countAliveCells(grid);
+            
+            // Check win condition
+            if (aliveCells == 0) {
+                currentState = WIN_SCREEN;
             }
         }
         
+        // Render
         BeginDrawing();
         ClearBackground(BLACK);
         
         if (currentState == MAIN_MENU) {
-            const char* title = "CONWAY'S GAME OF LIFE";
-            int titleWidth = MeasureText(title, 40);
-            DrawText(title, (SCREEN_WIDTH - titleWidth) / 2, 150, 40, WHITE);
+            const char* title = "BitBloom";
+            int titleWidth = MeasureText(title, 60);
+            DrawText(title, (SCREEN_WIDTH - titleWidth) / 2, 100, 60, GREEN);
+            
+            const char* subtitle = "Eliminate all living cells!";
+            int subtitleWidth = MeasureText(subtitle, 20);
+            DrawText(subtitle, (SCREEN_WIDTH - subtitleWidth) / 2, 180, 20, LIGHTGRAY);
             
             int buttonWidth = 300;
             int buttonHeight = 60;
             int buttonX = (SCREEN_WIDTH - buttonWidth) / 2;
             
-            bool startHovered = isMouseOver(buttonX, 250, buttonWidth, buttonHeight);
+            bool playHovered = isMouseOver(buttonX, 250, buttonWidth, buttonHeight);
             bool quitHovered = isMouseOver(buttonX, 330, buttonWidth, buttonHeight);
             
-            if (drawButton("START", buttonX, 250, buttonWidth, buttonHeight, startHovered)) {
-                currentState = SEED_MENU;
+            if (drawButton("Play", buttonX, 250, buttonWidth, buttonHeight, playHovered)) {
+                clearGrid(grid);
+                randomSeed(grid, 0.3f);
+                currentState = GAME;
+                frameCounter = 0;
             }
             
-            if (drawButton("QUIT", buttonX, 330, buttonWidth, buttonHeight, quitHovered)) {
+            if (drawButton("Exit", buttonX, 330, buttonWidth, buttonHeight, quitHovered)) {
                 CloseWindow();
                 return 0;
             }
         }
-        else if (currentState == SEED_MENU) {
-            const char* title = "SELECT INITIAL SEED";
-            int titleWidth = MeasureText(title, 40);
-            DrawText(title, (SCREEN_WIDTH - titleWidth) / 2, 100, 40, WHITE);
+        else if (currentState == GAME) {
+            // Draw grid
+            for (int y = 0; y < GRID_HEIGHT; y++) {
+                for (int x = 0; x < GRID_WIDTH; x++) {
+                    if (grid[y][x]) {
+                        DrawRectangle(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE - 1, CELL_SIZE - 1, GREEN);
+                    }
+                }
+            }
+            
+            // Draw UI
+            DrawRectangle(0, 0, SCREEN_WIDTH, 40, Fade(BLACK, 0.7f));
+            
+            char cellCountText[64];
+            snprintf(cellCountText, sizeof(cellCountText), "Alive Cells: %d", aliveCells);
+            DrawText(cellCountText, 10, 10, 24, WHITE);
+            
+            DrawText("Goal: Eliminate all cells!", SCREEN_WIDTH - 250, 10, 20, YELLOW);
+            
+            DrawText("Left Click: Place Cell | ESC: Menu", 10, SCREEN_HEIGHT - 30, 18, GRAY);
+        }
+        else if (currentState == WIN_SCREEN) {
+            const char* winTitle = "YOU WIN!";
+            int winTitleWidth = MeasureText(winTitle, 60);
+            DrawText(winTitle, (SCREEN_WIDTH - winTitleWidth) / 2, 150, 60, GREEN);
+            
+            const char* winSubtitle = "All cells eliminated!";
+            int winSubtitleWidth = MeasureText(winSubtitle, 30);
+            DrawText(winSubtitle, (SCREEN_WIDTH - winSubtitleWidth) / 2, 230, 30, LIGHTGRAY);
             
             int buttonWidth = 300;
             int buttonHeight = 60;
             int buttonX = (SCREEN_WIDTH - buttonWidth) / 2;
             
-            bool blankHovered = isMouseOver(buttonX, 220, buttonWidth, buttonHeight);
-            bool randomHovered = isMouseOver(buttonX, 300, buttonWidth, buttonHeight);
+            bool playAgainHovered = isMouseOver(buttonX, 300, buttonWidth, buttonHeight);
+            bool menuHovered = isMouseOver(buttonX, 380, buttonWidth, buttonHeight);
             
-            if (drawButton("BLANK", buttonX, 220, buttonWidth, buttonHeight, blankHovered)) {
+            if (drawButton("Play Again", buttonX, 300, buttonWidth, buttonHeight, playAgainHovered)) {
                 clearGrid(grid);
-                history.clear();
-                currentState = SIMULATION;
-                paused = false;
+                randomSeed(grid, 0.3f);
+                currentState = GAME;
+                frameCounter = 0;
             }
             
-            if (drawButton("RANDOM SEED", buttonX, 300, buttonWidth, buttonHeight, randomHovered)) {
-                clearGrid(grid);
-                randomSeed(grid);
-                history.clear();
-                currentState = SIMULATION;
-                paused = false;
-            }
-            
-            DrawText("Press ESC to go back", 10, SCREEN_HEIGHT - 30, 20, GRAY);
-            if (IsKeyPressed(KEY_ESCAPE)) {
+            if (drawButton("Main Menu", buttonX, 380, buttonWidth, buttonHeight, menuHovered)) {
                 currentState = MAIN_MENU;
+                clearGrid(grid);
             }
-        }
-        else if (currentState == SIMULATION) {
-            for (int y = 0; y < GRID_HEIGHT; y++) {
-                for (int x = 0; x < GRID_WIDTH; x++) {
-                    if (grid[y][x]) {
-                        DrawRectangle(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE - 1, CELL_SIZE - 1, WHITE);
-                    }
-                }
-            }
-            
-            const char* status = paused ? "PAUSED (SPACE: play | LEFT/RIGHT: step back/forward)" : "RUNNING (SPACE to pause)";
-            DrawText(status, 10, 10, 20, GREEN);
-            
-            // Show history count when paused
-            if (paused) {
-                char historyText[32];
-                snprintf(historyText, sizeof(historyText), "History: %zu states", history.size());
-                DrawText(historyText, 10, 35, 16, LIGHTGRAY);
-            }
-            
-            DrawText("Left Click: Draw | Right Click: Erase | C: Clear | ESC: Menu", 10, SCREEN_HEIGHT - 30, 20, GRAY);
         }
         
         EndDrawing();
