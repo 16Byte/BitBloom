@@ -83,12 +83,15 @@ int countAliveCells(const std::vector<std::vector<bool>>& grid) {
 }
 
 bool drawButton(const char* text, int x, int y, int width, int height, bool isHovered) {
-    Color buttonColor = isHovered ? DARKGRAY : GRAY;
+    Color buttonColor = isHovered ? WHITE : BLACK;
+    Color borderColor = WHITE;
+    Color textColor = isHovered ? BLACK : WHITE;
+    
     DrawRectangle(x, y, width, height, buttonColor);
-    DrawRectangleLines(x, y, width, height, WHITE);
+    DrawRectangleLines(x, y, width, height, borderColor);
     
     int textWidth = MeasureText(text, 30);
-    DrawText(text, x + (width - textWidth) / 2, y + (height - 30) / 2, 30, WHITE);
+    DrawText(text, x + (width - textWidth) / 2, y + (height - 30) / 2, 30, textColor);
     
     return isHovered && IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
 }
