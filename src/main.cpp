@@ -10,8 +10,10 @@ const int GRID_HEIGHT = 60;
 const int CELL_SIZE = 10;
 const int UI_TOP_HEIGHT = 50;
 const int UI_BOTTOM_HEIGHT = 40;
+const int GRID_PADDING_X = 20;
+const int GRID_OFFSET_X = GRID_PADDING_X;
 const int GRID_OFFSET_Y = UI_TOP_HEIGHT;
-const int SCREEN_WIDTH = GRID_WIDTH * CELL_SIZE;
+const int SCREEN_WIDTH = GRID_WIDTH * CELL_SIZE + (GRID_PADDING_X * 2);
 const int SCREEN_HEIGHT = GRID_HEIGHT * CELL_SIZE + UI_TOP_HEIGHT + UI_BOTTOM_HEIGHT;
 
 enum GameState {
@@ -119,7 +121,7 @@ int main() {
             // Allow player to add cells by clicking
             if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
                 Vector2 mousePos = GetMousePosition();
-                int x = mousePos.x / CELL_SIZE;
+                int x = (mousePos.x - GRID_OFFSET_X) / CELL_SIZE;
                 int y = (mousePos.y - GRID_OFFSET_Y) / CELL_SIZE;
                 if (x >= 0 && x < GRID_WIDTH && y >= 0 && y < GRID_HEIGHT) {
                     grid[y][x] = true;
@@ -206,13 +208,13 @@ int main() {
             for (int y = 0; y < GRID_HEIGHT; y++) {
                 for (int x = 0; x < GRID_WIDTH; x++) {
                     if (grid[y][x]) {
-                        DrawRectangle(x * CELL_SIZE, y * CELL_SIZE + GRID_OFFSET_Y, CELL_SIZE - 1, CELL_SIZE - 1, GREEN);
+                        DrawRectangle(x * CELL_SIZE + GRID_OFFSET_X, y * CELL_SIZE + GRID_OFFSET_Y, CELL_SIZE - 1, CELL_SIZE - 1, GREEN);
                     }
                 }
             }
             
             // Draw border around game grid
-            DrawRectangleLines(0, GRID_OFFSET_Y, SCREEN_WIDTH, GRID_HEIGHT * CELL_SIZE, WHITE);
+            DrawRectangleLines(GRID_OFFSET_X, GRID_OFFSET_Y, GRID_WIDTH * CELL_SIZE, GRID_HEIGHT * CELL_SIZE, WHITE);
             
             // Draw bottom UI bar
             DrawRectangle(0, SCREEN_HEIGHT - UI_BOTTOM_HEIGHT, SCREEN_WIDTH, UI_BOTTOM_HEIGHT, BLACK);
