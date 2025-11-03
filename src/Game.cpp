@@ -2,6 +2,7 @@
 #include "UI.h"
 #include "raylib.h"
 #include <ctime>
+#include <cstdio>
 
 Game::Game(int gridWidth, int gridHeight, int cellSize) 
     : gridWidth(gridWidth), gridHeight(gridHeight), cellSize(cellSize),
@@ -12,12 +13,20 @@ Game::Game(int gridWidth, int gridHeight, int cellSize)
     screenHeight = gridHeight * cellSize + UI_TOP_HEIGHT + UI_BOTTOM_HEIGHT;
     
     grid = new Grid(gridWidth, gridHeight);
+    shapeDetector = new ShapeDetector();
+    
+    // Load shapes from directory
+    shapeDetector->loadShapesFromDirectory("shapes");
+    
+    // Set up callbacks for detected shapes
+    setupShapeCallbacks();
     
     SetRandomSeed(time(NULL));
 }
 
 Game::~Game() {
     delete grid;
+    delete shapeDetector;
 }
 
 void Game::run() {
@@ -58,6 +67,9 @@ void Game::update() {
         if (frameCounter >= 6) {
             grid->update();
             frameCounter = 0;
+            
+            // Detect shapes after grid update
+            shapeDetector->detectAndTrigger(*grid);
         }
         
         // Check win condition
@@ -124,6 +136,31 @@ void Game::handleGameInput() {
         }
     }
     
+    // Debug: Print all detected shapes when space is pressed
+    if (IsKeyPressed(KEY_SPACE)) {
+        printf("\n=== Shape Detection Debug ===\n");
+        bool foundAny = false;
+        
+        for (Shape* shape : shapeDetector->getShapes()) {
+            for (int y = 0; y <= grid->getHeight() - shape->getHeight(); y++) {
+                for (int x = 0; x <= grid->getWidth() - shape->getWidth(); x++) {
+                    if (shapeDetector->matchesShapeAt(*grid, *shape, x, y)) {
+                        int centerX = x + shape->getWidth() / 2;
+                        int centerY = y + shape->getHeight() / 2;
+                        printf("Found '%s' at position (%d, %d) [center: (%d, %d)]\n", 
+                               shape->getName().c_str(), x, y, centerX, centerY);
+                        foundAny = true;
+                    }
+                }
+            }
+        }
+        
+        if (!foundAny) {
+            printf("No shapes detected.\n");
+        }
+        printf("=============================\n\n");
+    }
+    
     if (IsKeyPressed(KEY_ESCAPE)) {
         currentState = MAIN_MENU;
         grid->clear();
@@ -175,4 +212,35 @@ void Game::renderGame() {
 void Game::renderWinScreen() {
     UI::drawWinScreen(finalTime, screenWidth, screenHeight);
     // Buttons are drawn in handleWinScreenInput
+}
+
+void Game::setupShapeCallbacks() {
+    // Set up callbacks for each loaded shape
+    for (Shape* shape : shapeDetector->getShapes()) {
+        std::string shapeName = shape->getName();
+        
+        // Example callbacks - customize these for each shape!
+        if (shapeName == "diamond") {
+            shape->setCallback([](int x, int y) {
+                // TODO: Add sound effect or visual feedback
+                (void)x; (void)y; // Unused for now
+                // PlaySound(diamondSound);
+            });
+        }
+        else if (shapeName == "glider") {
+            shape->setCallback([](int x, int y) {
+                // TODO: Add glider detection feedback
+                (void)x; (void)y;
+                // PlaySound(gliderSound);
+            });
+        }
+        else if (shapeName == "blinker") {
+            shape->setCallback([](int x, int y) {
+                // TODO: Add blinker detection feedback
+                (void)x; (void)y;
+                // PlaySound(blinkerSound);
+            });
+        }
+        // Add more shape-specific callbacks as needed
+    }
 }

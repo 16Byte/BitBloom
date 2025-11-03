@@ -3,6 +3,7 @@
 
 #include "Grid.h"
 #include "GameState.h"
+#include "ShapeDetector.h"
 
 class Game {
 public:
@@ -26,6 +27,7 @@ private:
     int screenHeight;
     
     Grid* grid;
+    ShapeDetector* shapeDetector;
     GameState currentState;
     
     float gameTimer;
@@ -44,6 +46,8 @@ private:
     void renderMainMenu();
     void renderGame();
     void renderWinScreen();
+    
+    void setupShapeCallbacks();
 };
 
 #endif // GAME_H
