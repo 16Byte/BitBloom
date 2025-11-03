@@ -1,13 +1,19 @@
 #include "UI.h"
 #include <cstdio>
+#include <fstream>
+#include <vector>
+#include <string>
 
 bool UI::drawButton(const char* text, int x, int y, int width, int height, bool isHovered) {
-    Color buttonColor = isHovered ? DARKGRAY : GRAY;
+    Color buttonColor = isHovered ? WHITE : BLACK;
+    Color borderColor = WHITE;
+    Color textColor = isHovered ? BLACK : WHITE;
+    
     DrawRectangle(x, y, width, height, buttonColor);
-    DrawRectangleLines(x, y, width, height, WHITE);
+    DrawRectangleLines(x, y, width, height, borderColor);
     
     int textWidth = MeasureText(text, 30);
-    DrawText(text, x + (width - textWidth) / 2, y + (height - 30) / 2, 30, WHITE);
+    DrawText(text, x + (width - textWidth) / 2, y + (height - 30) / 2, 30, textColor);
     
     return isHovered && IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
 }
@@ -18,12 +24,39 @@ bool UI::isMouseOver(int x, int y, int width, int height) {
            mousePos.y >= y && mousePos.y <= y + height;
 }
 
+std::vector<std::string> UI::loadAsciiArt(const char* filename) {
+    std::vector<std::string> lines;
+    std::ifstream file(filename);
+    if (file.is_open()) {
+        std::string line;
+        while (std::getline(file, line)) {
+            lines.push_back(line);
+        }
+        file.close();
+    }
+    return lines;
+}
+
 void UI::drawMainMenu(int screenWidth, int screenHeight) {
     (void)screenHeight; // Unused
     
-    const char* title = "BitBloom";
-    int titleWidth = MeasureText(title, 60);
-    DrawText(title, (screenWidth - titleWidth) / 2, 100, 60, GREEN);
+    // Try to load ASCII art logo, fall back to text if not found
+    static std::vector<std::string> asciiLogo = loadAsciiArt("assets/bitbloom_logo.txt");
+    
+    if (!asciiLogo.empty()) {
+        // Draw ASCII art logo
+        int startY = 50;
+        int fontSize = 10;
+        for (size_t i = 0; i < asciiLogo.size(); i++) {
+            int textWidth = MeasureText(asciiLogo[i].c_str(), fontSize);
+            DrawText(asciiLogo[i].c_str(), (screenWidth - textWidth) / 2, startY + (i * fontSize), fontSize, GREEN);
+        }
+    } else {
+        // Fallback to simple text title
+        const char* title = "BitBloom";
+        int titleWidth = MeasureText(title, 60);
+        DrawText(title, (screenWidth - titleWidth) / 2, 100, 60, GREEN);
+    }
     
     const char* subtitle = "Eliminate all living cells!";
     int subtitleWidth = MeasureText(subtitle, 20);
