@@ -21,7 +21,7 @@ BIN_DIR = bin
 TARGET = $(BIN_DIR)/game_of_life
 
 # Source files
-SOURCES = $(wildcard $(SRC_DIR)/*.cpp)
+SOURCES = $(SRC_DIR)/main.cpp $(SRC_DIR)/Game.cpp $(SRC_DIR)/Grid.cpp $(SRC_DIR)/UI.cpp
 OBJECTS = $(SOURCES:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 
 # Default target
